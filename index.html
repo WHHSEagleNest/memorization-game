@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BigRedHacks 2025</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/@google/generative-ai/dist/index.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- API Key Modal -->
+    <div v-if="showApiKeyInput" class="modal-overlay">
+      <div class="modal">
+        <h2>Enter Google Gemini API Key</h2>
+        <p>Enter your API key to generate unique content with AI, or use default content.</p>
+        <input type="password" v-model="apiKey" placeholder="Paste your API key here">
+        <div class="modal-buttons">
+          <button @click="startWithApiKey">Use Gemini AI</button>
+          <button @click="useDefaultContent">Use Default Content</button>
+        </div>
+        <p class="small">Get an API key from <a href="https://aistudio.google.com/" target="_blank">Google AI Studio</a></p>
+      </div>
+    </div>
+
+    <!-- Start Page -->
+    <div v-if="currentPage === 'start'" class="start-page">
+      <div class="header">
+        <h1>BIGREDHACKS 2025 HACKATHON</h1>
+        <h2>WELCOME!</h2>
+      </div>
+      
+      <div class="content">
+        <div class="how-to-play">
+          <h3>HOW TO PLAY</h3>
+          <div class="instructions">
+            <p>This is a fast-paced memorization challenge. When you hit Start, you'll be shown a website for a limited time.</p>
+            <p>Pay close attention—not just to the layout, but to the colors, buttons, and text. When time's up, the page disappears and you'll have to rebuild it from memory.</p>
+            <p>The closer your recreation matches the original, the higher your score. Can you remember every detail before the clock runs out?</p>
+            <p class="signature">Aditya.</p>
+          </div>
+        </div>
+        
+        <div class="buttons">
+          <button class="play-btn" @click="startGame">PLAY</button>
+          <button class="about-btn" @click="showAboutModal = true">ABOUT</button>
+          <button class="settings-btn" @click="showSettingsModal = true">SETTINGS</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Memorization View -->
+    <div v-if="currentPage === 'memorization' && websiteContent" class="memorization-page">
+      <div class="memorization-header">
+        <h2>Memorize This Website!</h2>
+        <div class="timer">Time remaining: {{ timer }} seconds</div>
+      </div>
+      
+      <div class="website-display" :style="{ backgroundColor: websiteContent.backgroundColor }">
+        <div class="website-header" :style="{ backgroundColor: websiteContent.headerColor, color: websiteContent.textColor }">
+          {{ websiteContent.title }}
+        </div>
+        
+        <div class="website-content">
+          <div v-for="(section, index) in websiteContent.sections" :key="index" class="website-section" 
+               :style="{ backgroundColor: section.backgroundColor, color: section.textColor, borderColor: section.borderColor }">
+            <h3 :style="{ color: section.headingColor }">{{ section.heading }}</h3>
+            <p>{{ section.content }}</p>
+            <div v-if="section.hasButton" class="section-button" :style="{ backgroundColor: section.buttonColor, color: section.buttonTextColor }">
+              {{ section.buttonText }}
+            </div>
+          </div>
+        </div>
+        
+        <div class="website-footer" :style="{ backgroundColor: websiteContent.footerColor, color: websiteContent.footerTextColor }">
+          {{ websiteContent.footerText }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Recreation View -->
+    <div v-if="currentPage === 'recreation' && websiteContent" class="recreation-page">
+      <h2>Now Recreate the Website!</h2>
+      <p>Remember to recreate the colors, layout, and content as accurately as possible.</p>
+      
+      <div class="recreation-area">
+        <div class="input-group">
+          <label>Page Background Color:</label>
+          <input type="color" v-model="userContent.backgroundColor">
+          <span class="color-value">{{ userContent.backgroundColor }}</span>
+        </div>
+        
+        <div class="input-group">
+          <label>Title:</label>
+          <input type="text" v-model="userContent.title" placeholder="Enter the title">
+        </div>
+        
+        <div class="input-group">
+          <label>Header Background Color:</label>
+          <input type="color" v-model="userContent.headerColor">
+          <span class="color-value">{{ userContent.headerColor }}</span>
+        </div>
+        
+        <div class="input-group">
+          <label>Header Text Color:</label>
+          <input type="color" v-model="userContent.textColor">
+          <span class="color-value">{{ userContent.textColor }}</span>
+        </div>
+        
+        <div v-for="(section, index) in userContent.sections" :key="index" class="section-group">
+          <h3>Section {{ index + 1 }}</h3>
+          
+          <div class="input-group">
+            <label>Heading:</label>
+            <input type="text" v-model="section.heading" :placeholder="'Heading for section ' + (index + 1)">
+          </div>
+          
+          <div class="input-group">
+            <label>Heading Color:</label>
+            <input type="color" v-model="section.headingColor">
+            <span class="color-value">{{ section.headingColor }}</span>
+          </div>
+          
+          <div class="input-group">
+            <label>Content:</label>
+            <textarea v-model="section.content" :placeholder="'Content for section ' + (index + 1)" rows="2"></textarea>
+          </div>
+          
+          <div class="input-group">
+            <label>Background Color:</label>
+            <input type="color" v-model="section.backgroundColor">
+            <span class="color-value">{{ section.backgroundColor }}</span>
+          </div>
+          
+          <div class="input-group">
+            <label>Text Color:</label>
+            <input type="color" v-model="section.textColor">
+            <span class="color-value">{{ section.textColor }}</span>
+          </div>
+          
+          <div class="input-group">
+            <label>Border Color:</label>
+            <input type="color" v-model="section.borderColor">
+            <span class="color-value">{{ section.borderColor }}</span>
+          </div>
+          
+          <div class="input-group">
+            <label>Include Button:</label>
+            <input type="checkbox" v-model="section.hasButton">
+          </div>
+          
+          <div v-if="section.hasButton" class="input-group">
+            <label>Button Text:</label>
+            <input type="text" v-model="section.buttonText" placeholder="Button text">
+          </div>
+          
+          <div v-if="section.hasButton" class="input-group">
+            <label>Button Color:</label>
+            <input type="color" v-model="section.buttonColor">
+            <span class="color-value">{{ section.buttonColor }}</span>
+          </div>
+          
+          <div v-if="section.hasButton" class="input-group">
+            <label>Button Text Color:</label>
+            <input type="color" v-model="section.buttonTextColor">
+            <span class="color-value">{{ section.buttonTextColor }}</span>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>Footer Text:</label>
+          <input type="text" v-model="userContent.footerText" placeholder="Footer text">
+        </div>
+        
+        <div class="input-group">
+          <label>Footer Background Color:</label>
+          <input type="color" v-model="userContent.footerColor">
+          <span class="color-value">{{ userContent.footerColor }}</span>
+        </div>
+        
+        <div class="input-group">
+          <label>Footer Text Color:</label>
+          <input type="color" v-model="userContent.footerTextColor">
+          <span class="color-value">{{ userContent.footerTextColor }}</span>
+        </div>
+
+        <button class="submit-button" @click="calculateScore">SUBMIT</button>
+      </div>
+    </div>
+
+    <!-- Score View -->
+    <div v-if="currentPage === 'score'" class="score-page">
+      <h2>Your Score: {{ score }}%</h2>
+      <p>{{ scoreMessage }}</p>
+      
+      <div class="comparison">
+        <div class="original">
+          <h3>Original Website</h3>
+          <div class="website-display-preview" :style="{ backgroundColor: websiteContent.backgroundColor }">
+            <div class="website-header-preview" :style="{ backgroundColor: websiteContent.headerColor, color: websiteContent.textColor }">
+              {{ websiteContent.title }}
+            </div>
+            
+            <div class="website-content-preview">
+              <div v-for="(section, index) in websiteContent.sections" :key="index" class="website-section-preview" 
+                   :style="{ backgroundColor: section.backgroundColor, color: section.textColor, borderColor: section.borderColor }">
+                <h4 :style="{ color: section.headingColor }">{{ section.heading }}</h4>
+                <p>{{ section.content }}</p>
+                <div v-if="section.hasButton" class="section-button-preview" :style="{ backgroundColor: section.buttonColor, color: section.buttonTextColor }">
+                  {{ section.buttonText }}
+                </div>
+              </div>
+            </div>
+            
+            <div class="website-footer-preview" :style="{ backgroundColor: websiteContent.footerColor, color: websiteContent.footerTextColor }">
+              {{ websiteContent.footerText }}
+            </div>
+          </div>
+        </div>
+        
+        <div class="user">
+          <h3>Your Recreation</h3>
+          <div class="website-display-preview" :style="{ backgroundColor: userContent.backgroundColor }">
+            <div class="website-header-preview" :style="{ backgroundColor: userContent.headerColor, color: userContent.textColor }">
+              {{ userContent.title }}
+            </div>
+            
+            <div class="website-content-preview">
+              <div v-for="(section, index) in userContent.sections" :key="index" class="website-section-preview" 
+                   :style="{ backgroundColor: section.backgroundColor, color: section.textColor, borderColor: section.borderColor }">
+                <h4 :style="{ color: section.headingColor }">{{ section.heading }}</h4>
+                <p>{{ section.content }}</p>
+                <div v-if="section.hasButton" class="section-button-preview" :style="{ backgroundColor: section.buttonColor, color: section.buttonTextColor }">
+                  {{ section.buttonText }}
+                </div>
+              </div>
+            </div>
+            
+            <div class="website-footer-preview" :style="{ backgroundColor: userContent.footerColor, color: userContent.footerTextColor }">
+              {{ userContent.footerText }}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <button class="restart-button" @click="restartGame">PLAY AGAIN</button>
+    </div>
+
+    <!-- About Modal -->
+    <div v-if="showAboutModal" class="modal-overlay" @click="showAboutModal = false">
+      <div class="modal" @click.stop>
+        <h2>ABOUT</h2>
+        <p>Hello everybody! My name is Aditya and I created this small game using Vue as a framework for BigRedHacks 2025! 
+            Come and test your memory skills by recreating websites you've only seen for a few seconds!</p>
+        <button class="close-btn" @click="showAboutModal = false">CLOSE</button>
+      </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div v-if="showSettingsModal" class="modal-overlay" @click="showSettingsModal = false">
+      <div class="modal" @click.stop>
+        <h2>SETTINGS</h2>
+        <div class="setting">
+          <label>Memorization Time (seconds):</label>
+          <input type="number" v-model="memorizationTime" min="5" max="60">
+        </div>
+        <div class="setting">
+          <label>API Key:</label>
+          <input type="password" v-model="apiKey" placeholder="Enter Gemini API key">
+        </div>
+        <button class="close-btn" @click="showSettingsModal = false">SAVE & CLOSE</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
